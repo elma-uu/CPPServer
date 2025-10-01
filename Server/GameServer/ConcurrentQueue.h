@@ -119,10 +119,43 @@ private:
 template<typename T>
 class LockFreeQueue
 {
+	struct Node;
+
+	struct CounterNodePtr
+	{
+		int32 externalCount; // 참조권
+		Node* ptr = nullptr; // 그냥 노드를 포인터로 들고 있는게 아니라 카운팅을 같이 함
+	};
+
+	struct NodeCounter
+	{
+		uint32 internalCount : 30; // uint가 32비트짜리지만 32비트가 다 필요하지 않으므로 30비트만 사용
+		uint32 externalCounterRemaining : 2; // 위에서 남은 2비트만 사용
+	}; // internalCount : 참조권 반환 관련
+	   // externalCounterRemaining : 푸쉬랑 팝에서 다중 참조권 관련
+
+
 	struct Node
 	{
-		shared_ptr<T> data;
-		Node* next = nullptr;
+		Node()
+		{
+			NodeCounter newCount;
+			newCount internalCount = 0;
+			newCount externalCountRemaining = 2;
+			count.store(newCount);
+
+			next.ptr = nullptr;
+			next.externalCount = 0;
+		}
+
+		void ReleaseRef()
+		{
+			//TODO
+		}
+
+		atomic<T> data;
+		atomic<NodeCounter> count;
+		CounterNodePtr next;
 	};
 
 public:
@@ -136,15 +169,37 @@ public:
 
 	void Push(const T& value)	// 스택과 다르게 Q에서는 푸쉬할때, 팝할때 둘다 동일하게 더미노드에 경합이 생김
 	{
-		shared_ptr<T> newData = make_shared<T>(value);
+		unique_ptr<T> newData = make_unique<T>(value);
 
-		Node* dummy = new Node();
+		CountedNodePtr dummy;
+		dummy.ptr = new Node();
+		dummy.externalCount = 1;
 
-		Node* oldTail = _tail;	// Tail에서 경합이 붙는 부분
-		oldTail->data.swap(newData);
-		oldTail->next = dummy;
+		CounterNodePtr oldTail = _tail.load();
 
-		_tail = dummy;
+		while (true)
+		{
+			// 참조권 획득 (externalCount를 현시점 기준 +1 한 애가 가짐)
+			increaseExternalCount(_tail, oldTail);
+
+			// 소유권 획득 ( data를 먼저 교환한 애가 이김)
+			T* oldData = nullptr;
+			if (oldTail.ptr->data.compare_exchange_strong(oldData, newData.get())
+			{
+
+			}
+
+		}
+
+		//shared_ptr<T> newData = make_shared<T>(value);
+
+		//Node* dummy = new Node();
+
+		//Node* oldTail = _tail;	// Tail에서 경합이 붙는 부분
+		//oldTail->data.swap(newData);
+		//oldTail->next = dummy;
+
+		//_tail = dummy;
 	}
 
 	shared_ptr<T> TryPop()
@@ -160,19 +215,30 @@ public:
 
 
 private:
-	Node* PopHead()
-	{
-		Node* oldHead = _head;		//멀티스레드 환경에서 정상적으로 동작할 수 없음
-		if (oldHead == _tail)
-			return nullptr;
+	//Node* PopHead()
+	//{
+	//	Node* oldHead = _head;		//멀티스레드 환경에서 정상적으로 동작할 수 없음
+	//	if (oldHead == _tail)
+	//		return nullptr;
 
-		_head = oldHead->next;
-		return oldHead;
+	//	_head = oldHead->next;
+	//	return oldHead;
+	//}
+
+	static void increaseExternalCount(atomic<CountedNodePtr>& counter, CountedNodePtr& oldCounter)
+	{
+		CountedNodePtr newCounter = oldCounter;
+		newCounter.externalCount++;
+
+		if(counter.compare_exchange_strong(oldCounter, newCounter))
+		{
+			oldCounter.externalCount = newCounter.externalCount;
+			break;
+		}
 	}
 
 
-
 private:
-	Node* _head = nullptr;
-	Node* _tail = nullptr;
+	atomic<CountedNodePtr> _head;
+	atomic<CountedNodePtr> _tail;
 };
