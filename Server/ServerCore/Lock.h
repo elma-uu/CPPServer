@@ -18,9 +18,38 @@ class Lock
 
 
 public:
+	void WriteLock();
+	void WriteUnlock();
+	void ReadLock();
+	void ReadUnlock();
+
 
 private:
 	Atomic<uint32> _lockFlag = EMPTY_FLAG;
 	uint16 _writeCount = 0;
 };
 
+/*--------------------
+:	  LockGuards
+---------------------*/
+
+class ReadLockGuard
+{
+public:
+	ReadLockGuard(Lock& lock) : _lock(lock) { _lock.ReadLock();  }
+	~ReadLockGuard() { _lock.ReadUnlock(); }
+
+private:
+	Lock& _lock;
+};
+
+
+class WriteLockGuard
+{
+public:
+	WriteLockGuard(Lock& lock) : _lock(lock) { _lock.WriteLock(); }
+	~WriteLockGuard() { _lock.WriteUnlock(); }
+
+private:
+	Lock& _lock;
+};
