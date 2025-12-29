@@ -7,9 +7,9 @@
 #include <windows.h>
 #include "CoreMacro.h"
 
-
+CoreGlobal Core;
 
 int main()
 {
-	CRASH("Test");
+	
 }
