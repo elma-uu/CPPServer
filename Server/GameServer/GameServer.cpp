@@ -10,6 +10,7 @@
 #include "RefCounting.h"
 
 using KnightRef = TSharedPtr<Knight>;
+using InventoryRef = TSharedPtr<Inventory>;
 
 class Knight : public RefCountable
 {
@@ -30,8 +31,19 @@ public:
 	}
 
 	KnightRef _target = nullptr;
+	InventoryRef _inventory = nullptr;
 };
 
+class Inventory : public RefCountable
+{
+public:
+	Inventory(KnightRef knight) : _knight(knight)
+	{
+
+	}
+
+	KnightRef _knight;
+};
 
 int main()
 {
@@ -40,17 +52,8 @@ int main()
 
 	KnightRef k1(new Knight());
 	k1->ReleaseRef();
-	KnightRef k2(new Knight());
-	k2->ReleaseRef();
-
-	k1->SetTarget(k2);
-	k2->SetTarget(k1);
-
-	k1->SetTarget(nullptr);
-	k2->SetTarget(nullptr);
 	
-	k1 = nullptr;
-	k2 = nullptr;
+	k1->_inventory = new Inventory(k1);
 
 	
 
