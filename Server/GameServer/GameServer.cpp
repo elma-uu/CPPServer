@@ -46,8 +46,12 @@ int main()
 	k1->SetTarget(k2);
 	k2->SetTarget(k1);
 
+	k1->SetTarget(nullptr);
+	k2->SetTarget(nullptr);
+	
 	k1 = nullptr;
 	k2 = nullptr;
 
+	
 
 }
