@@ -37,12 +37,12 @@ public:
 class Inventory : public RefCountable
 {
 public:
-	Inventory(KnightRef knight) : _knight(knight)
+	Inventory(KnightRef knight) : _knight(**knight)
 	{
 
 	}
 
-	KnightRef _knight;
+	Knight& _knight;
 };
 
 int main()
@@ -55,6 +55,11 @@ int main()
 	
 	k1->_inventory = new Inventory(k1);
 
+	unique_ptr<Knight> k2 = make_unique<Knight>();
+	unique_ptr<Knight> k3 = std::move(k2);	// 유니크는 말 그대로 유니크해야해서, 복사가 막혀있음.
+	// unique_ptr
 	
-
+	// shared_ptr
+	// weak_ptr
+	shared_ptr<Knight> spr;
 }
