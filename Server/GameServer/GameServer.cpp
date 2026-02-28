@@ -9,10 +9,8 @@
 
 #include "RefCounting.h"
 
-using KnightRef = TSharedPtr<Knight>;
-using InventoryRef = TSharedPtr<Inventory>;
 
-class Knight : public RefCountable
+class Knight
 {
 public:
 	Knight()
@@ -25,41 +23,34 @@ public:
 		cout << "~Knight()" << endl;
 	}
 
-	void SetTarget(KnightRef target)
-	{
-		_target = target;
-	}
-
-	KnightRef _target = nullptr;
-	InventoryRef _inventory = nullptr;
 };
 
-class Inventory : public RefCountable
-{
-public:
-	Inventory(KnightRef knight) : _knight(**knight)
-	{
-
-	}
-
-	Knight& _knight;
-};
 
 int main()
 {
 	// 1) 이미 만들어진 클래스 대상으로 사용 불가
 	// 2) 순환 (Cycle) 문제 (표준 SharedPtr도 생기는 문제)
 
-	KnightRef k1(new Knight());
-	k1->ReleaseRef();
-	
-	k1->_inventory = new Inventory(k1);
 
-	unique_ptr<Knight> k2 = make_unique<Knight>();
-	unique_ptr<Knight> k3 = std::move(k2);	// 유니크는 말 그대로 유니크해야해서, 복사가 막혀있음.
-	// unique_ptr
-	
+
 	// shared_ptr
 	// weak_ptr
-	shared_ptr<Knight> spr;
+	
+	// [Knight | RefCountingBlock(uses, weak)]
+
+	// [T*][RefCountBlock*]
+
+	// weak_ptr는 Knight 수명 자체에는 영향을 주지 않는 반쪽자리 스마트 포인터다
+	// 객체가 사라졌는지 알기위한 RefCountingBlock만 참조한다.
+
+	// RefCountBlock(useCount(shared), weakCount)
+	shared_ptr<Knight> spr = make_shared<Knight>();
+	weak_ptr<Knight> wpr = spr;
+
+	bool expired = wpr.expired();
+	shared_ptr<Knight> spr2 = wpr.lock();
+	if (spr2 != nullptr)
+	{
+
+	}
 }
